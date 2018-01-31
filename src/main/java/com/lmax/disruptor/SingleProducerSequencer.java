@@ -38,6 +38,9 @@ abstract class SingleProducerSequencerFields extends SingleProducerSequencerPad
 
     /**
      * Set to -1 as sequence starting point
+     * nextValue 表示了当前写的最大位置，这个值一直往上递增，递增时不会对bufferSize取模。
+     * cachedValue 表示了所有读操作中的最小位置。
+     * 因此 (nextValue-cachedValue) 则表示了那些未被消费的部分， （bufferSize - (nextValue - cachedValue)）表示了整个队列的剩余空间。
      */
     long nextValue = Sequence.INITIAL_VALUE;
     long cachedValue = Sequence.INITIAL_VALUE;
@@ -127,11 +130,15 @@ public final class SingleProducerSequencer extends SingleProducerSequencerFields
         long wrapPoint = nextSequence - bufferSize;
         long cachedGatingSequence = this.cachedValue;
 
+        // (wrapPoint > cachedGatingSequence) <==> ((nextSequence - cachedGatingSequence) > bufferSize) 也就是表示没有写空间
+        // cachedGatingSequence > nextValue, 这个条件一般不会被触发，但在LMAX似乎有奇怪的用法可能会触发这个溢出条件。见 https://github.com/LMAX-Exchange/disruptor/issues/76
         if (wrapPoint > cachedGatingSequence || cachedGatingSequence > nextValue)
         {
+            // 刷新上一次的位置到实际Sequence中
             cursor.setVolatile(nextValue);  // StoreLoad fence
 
             long minSequence;
+            // 当没有写空间时，等待消费者消费队列元素
             while (wrapPoint > (minSequence = Util.getMinimumSequence(gatingSequences, nextValue)))
             {
                 waitStrategy.signalAllWhenBlocking();
