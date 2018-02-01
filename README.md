@@ -4,5 +4,6 @@
 对于其中重要的类做了中文逻辑注释,便于源码的快速阅读.
 
 ### 已更新的类
+Sequence  
 WorkerPool  
 WorkProcessor

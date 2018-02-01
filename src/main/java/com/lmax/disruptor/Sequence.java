@@ -42,6 +42,10 @@ class RhsPadding extends Value
  *
  * <p>Also attempts to be more efficient with regards to false
  * sharing by adding padding around the volatile field.
+ *
+ * Sequence与{@link java.util.concurrent.atomic.AtomicLong} 基本一致,
+ * 但通过继承(避免内部字段调整)在value上下都声明了7个long型变量(缓存行大小一般为64B),避免了伪共享(false sharing).
+ * 通过volatile + 线程次序法则完成了线程同步.(JCP:驾驭在同步之上)
  */
 public class Sequence extends RhsPadding
 {
