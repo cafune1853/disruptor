@@ -21,10 +21,12 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * WorkerPool contains a pool of {@link WorkProcessor}s that will consume sequences so jobs can be farmed out across a pool of workers.
- * Each of the {@link WorkProcessor}s manage and calls a {@link WorkHandler} to process the events.
- *
- * @param <T> event to be processed by a pool of workers
+ * 由于Disruptor设计中,使用广播机制,因此多个消费者默认是重复消费队列元素的.该类用于实现多个消费者不重复消费队列元素.
+ * 该实现主要是通过多个并行的多个consumer共享一个Sequence({@link WorkerPool#workSequence}),然后每个消费者({@link WorkProcessor})
+ * 通过workSequence每次竞争一个队列元素,每个消费者同样会持有自身的一个Sequence,通过自身的Sequence与生产者的Sequencer协调工作
+ * workSequence不和生产者进行任何的协调.Sequence直接使用Sequencer的SequencerBarrier, Sequencer直接使用每个消费者的Sequence作为gatingSequences.
+ * 具体的协调过程可见:{@link WorkerPool#WorkerPool(com.lmax.disruptor.EventFactory, com.lmax.disruptor.ExceptionHandler, com.lmax.disruptor.WorkHandler[])}
+ * 以及{@link WorkProcessor#run()}
  */
 public final class WorkerPool<T>
 {

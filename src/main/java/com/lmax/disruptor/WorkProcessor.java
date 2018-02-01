@@ -113,36 +113,43 @@ public final class WorkProcessor<T>
 
         notifyStart();
 
+        // true表示需要从workSequence中竞争一个新slot;false表示已经获得了一个slot,等待去消费slot中的数据.
         boolean processedSequence = true;
+        // 该数据用于判断从workerSequence竞争到的slot是否可写.
         long cachedAvailableSequence = Long.MIN_VALUE;
+        // 获得当前consumer自身的消费位置
         long nextSequence = sequence.get();
         T event = null;
+        // 循环处理事件
         while (true)
         {
             try
             {
-                // if previous sequence was processed - fetch the next sequence and set
-                // that we have successfully processed the previous sequence
-                // typically, this will be true
-                // this prevents the sequence getting too far forward if an exception
-                // is thrown from the WorkHandler
+                // 需要获得一个新的slot地址
                 if (processedSequence)
                 {
+                    // 设置为false,表示从这个循环体退出时
                     processedSequence = false;
+                    // 使用CAS分配一个slot(nextSequence).
                     do
                     {
                         nextSequence = workSequence.get() + 1L;
+                        // 让自身的sequence与workSequence保持一致,避免阻塞Producer,同时也可以将自身上次写入的事件同步给Producer.
                         sequence.set(nextSequence - 1L);
                     }
                     while (!workSequence.compareAndSet(nextSequence - 1L, nextSequence));
                 }
 
+                // 如果slot可消费,则直接消费
+                // 注意:这一次消费数据成功后并没有更新自身的Sequence,而是通过下一次分配slot的do-while循环进行更新.
                 if (cachedAvailableSequence >= nextSequence)
                 {
                     event = ringBuffer.get(nextSequence);
                     workHandler.onEvent(event);
+                    // 标记需要再竞争一个slot
                     processedSequence = true;
                 }
+                // 如果slot还不能消费,则等待生产者产生数据
                 else
                 {
                     cachedAvailableSequence = sequenceBarrier.waitFor(nextSequence);
