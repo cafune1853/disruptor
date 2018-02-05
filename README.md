@@ -34,6 +34,6 @@ ApplicationConsumer则必须等到JournalConsumer以及ReplicationConsumer都消
 
 ### 已更新的类
 Sequence  
-SingleProducerSequencer
+SingleProducerSequencer   
 WorkerPool  
 WorkProcessor
