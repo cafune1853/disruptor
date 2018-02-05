@@ -18,6 +18,19 @@ disruptor是十分高效的，其高效的原因主要来自以下两个方面�
 了解disruptor的整体架构，有助于我们从宏观上了解整个框架并能够使我们注重于核心组件的阅读。
 这里借用disruptor源项目中的逻辑组件图，对disruptor整体框架进行一个介绍。
 ![](https://raw.githubusercontent.com/wiki/LMAX-Exchange/disruptor/images/Models.png)
+其中共用组件是Sequence,其作用类似于AtomicLong,用于状态同步.其有一个具体实现类SequenceGroup,用于聚合一组Sequence,
+并取这组Sequence中的最小值作为整个SequenceGroup的最小值.
+
+生产者组件的是Sequencer, Sequencer有两个实现类--SingleProducerSequencer与MultiProducerSequencer,
+分别对应了单生产者以及多生产者的场景.两种实现都会持有一个Sequence对象用于竞争可写节点.Sequencer会持有所有
+Consumer的Sequence用于判断一个位置是否可写.
+
+消费者组件则是SequenceBarrier以及EventHandler, 一个SequenceBarrier会持有一个Sequencer以及其他消费者的Sequence,
+用于等待队列中的一个位置可读.EventHandler则是单纯的接口,定义了消费者的行为.EventHandlerGroup则用于聚集一组相互之间没有
+依赖关系的Consumer,其他Consumer可以依赖于这组EventHandlerGroup中Sequence最小的那个消费者.如图中JournalConsumer以及
+ReplicationConsumer,相互之间没有依赖关系,可以形成一个EventHandlerGroup(持有两个Sequence).
+ApplicationConsumer则必须等到JournalConsumer以及ReplicationConsumer都消费完之后,才能消费元素,
+因此直接依赖于整个EventHandlerGroup.
 
 ### 已更新的类
 Sequence  
