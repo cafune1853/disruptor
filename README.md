@@ -22,8 +22,7 @@ disruptor是十分高效的，其高效的原因主要来自以下两个方面�
 并取这组Sequence中的最小值作为整个SequenceGroup的最小值.     
 
 生产者组件的是Sequencer, Sequencer有两个实现类--SingleProducerSequencer与MultiProducerSequencer,
-分别对应了单生产者以及多生产者的场景.两种实现都会持有一个Sequence对象用于竞争可写节点.Sequencer会持有所有
-Consumer的Sequence用于判断一个位置是否可写.     
+分别对应了单生产者以及多生产者的场景.Sequencer会持有所有Consumer的Sequence用于判断一个位置是否可写.     
 
 消费者组件则是SequenceBarrier以及EventHandler, 一个SequenceBarrier会持有一个Sequencer以及其他消费者的Sequence,
 用于等待队列中的一个位置可读.EventHandler则是单纯的接口,定义了消费者的行为.EventHandlerGroup则用于聚集一组相互之间没有
@@ -36,4 +35,4 @@ ApplicationConsumer则必须等到JournalConsumer以及ReplicationConsumer都消
 Sequence  
 SingleProducerSequencer   
 WorkerPool  
-WorkProcessor
+WorkProcessor   
